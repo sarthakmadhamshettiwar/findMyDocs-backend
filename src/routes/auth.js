@@ -5,16 +5,16 @@ import { query } from '../db/index.js'
 
 const router = Router()
 
-function makeOAuthClient() {
+function makeOAuthClient(redirectUri = 'postmessage') {
   return new OAuth2Client(
     process.env.GOOGLE_CLIENT_ID,
     process.env.GOOGLE_CLIENT_SECRET,
-    'postmessage'
+    redirectUri
   )
 }
 
 router.post('/google', async (req, res) => {
-  const { code } = req.body
+  const { code, redirectUri } = req.body
 
   if (!code) {
     return res.status(400).json({ error: 'code is required' })
@@ -22,7 +22,7 @@ router.post('/google', async (req, res) => {
 
   let tokens
   try {
-    const client = makeOAuthClient()
+    const client = makeOAuthClient(redirectUri ?? 'postmessage')
     const response = await client.getToken(code)
     tokens = response.tokens
   } catch {
