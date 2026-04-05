@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { requireAuth } from '../middleware/auth.js'
 import { query } from '../db/index.js'
 import { shareFolderWith } from '../services/driveService.js'
+import { notifyFamilyMembers } from '../services/notificationService.js'
 
 const router = Router()
 router.use(requireAuth)
@@ -69,6 +70,10 @@ router.post('/:token/accept', async (req, res) => {
       )
     )
   )
+
+  const newUserName = await query('SELECT display_name FROM users WHERE id = $1', [userId])
+  const name = newUserName.rows[0]?.display_name ?? 'Someone'
+  await notifyFamilyMembers(invite.family_id, userId, 'New Family Member', `${name} joined your family`)
 
   res.json({ success: true, familyId: invite.family_id })
 })

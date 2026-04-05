@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { requireAuth } from '../middleware/auth.js'
 import { query } from '../db/index.js'
 import { OAuth2Client } from 'google-auth-library'
+import { notifyFamilyMembers } from '../services/notificationService.js'
 
 const router = Router()
 router.use(requireAuth)
@@ -120,6 +121,27 @@ router.get('/search', async (req, res) => {
     .flatMap(r => r.value)
 
   res.json({ files })
+})
+
+// Notify family members after a file upload (client calls this after Drive upload)
+router.post('/notify-upload', async (req, res) => {
+  const { fileName, category, subcategory } = req.body
+  const userId = req.user.userId
+
+  const memberRow = await query('SELECT family_id FROM family_members WHERE user_id = $1', [userId])
+  if (!memberRow.rows.length) return res.json({ success: true })
+
+  const familyId = memberRow.rows[0].family_id
+  const userResult = await query('SELECT display_name FROM users WHERE id = $1', [userId])
+  const name = userResult.rows[0]?.display_name ?? 'Someone'
+
+  await notifyFamilyMembers(
+    familyId, userId,
+    'New Document',
+    `${name} uploaded ${fileName} to ${category} > ${subcategory}`
+  )
+
+  res.json({ success: true })
 })
 
 // Get view URL for a file (using owner's token)
