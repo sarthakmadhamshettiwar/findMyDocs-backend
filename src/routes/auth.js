@@ -22,7 +22,8 @@ router.post('/google', async (req, res) => {
 
   let tokens
   try {
-    const client = makeOAuthClient(redirectUri || undefined)
+    // empty string = native Android (no redirect_uri), undefined/absent = web (postmessage)
+    const client = makeOAuthClient(redirectUri === '' ? undefined : (redirectUri || 'postmessage'))
     const response = await client.getToken(code)
     tokens = response.tokens
   } catch {

@@ -7,6 +7,21 @@ import { notifyFamilyMembers } from '../services/notificationService.js'
 const router = Router()
 router.use(requireAuth)
 
+// Get all pending invites for the current user's email
+router.get('/pending', async (req, res) => {
+  const userResult = await query('SELECT email FROM users WHERE id = $1', [req.user.userId])
+  const email = userResult.rows[0]?.email
+  if (!email) return res.json({ invites: [] })
+
+  const result = await query(
+    `SELECT i.token, i.expires_at, f.name as family_name
+     FROM invites i JOIN families f ON i.family_id = f.id
+     WHERE i.invited_email = $1 AND i.status = 'pending' AND i.expires_at > NOW()`,
+    [email]
+  )
+  res.json({ invites: result.rows })
+})
+
 // Accept an invite by token
 router.post('/:token/accept', async (req, res) => {
   const { token } = req.params
