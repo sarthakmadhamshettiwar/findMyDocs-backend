@@ -5,11 +5,11 @@ import { query } from '../db/index.js'
 
 const router = Router()
 
-function makeOAuthClient(redirectUri = 'postmessage') {
+function makeOAuthClient(redirectUri) {
   return new OAuth2Client(
     process.env.GOOGLE_CLIENT_ID,
     process.env.GOOGLE_CLIENT_SECRET,
-    redirectUri
+    redirectUri  // undefined = no redirect_uri in token exchange (native Android flow)
   )
 }
 
@@ -22,7 +22,7 @@ router.post('/google', async (req, res) => {
 
   let tokens
   try {
-    const client = makeOAuthClient(redirectUri ?? 'postmessage')
+    const client = makeOAuthClient(redirectUri || undefined)
     const response = await client.getToken(code)
     tokens = response.tokens
   } catch {
